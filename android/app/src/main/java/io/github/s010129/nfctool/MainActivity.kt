@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 
+private val NFC_ACTIONS = setOf(NfcAdapter.ACTION_TECH_DISCOVERED, NfcAdapter.ACTION_NDEF_DISCOVERED, NfcAdapter.ACTION_TAG_DISCOVERED)
+
 class MainActivity : ComponentActivity() {
     private val vm: AppVm by viewModels()
     private var adapter: NfcAdapter? = null
@@ -29,8 +31,12 @@ class MainActivity : ComponentActivity() {
 
     /** App 沒開時碰到標籤，系統把標籤交給我們 */
     private fun handleIntent(intent: Intent?) {
-        val tag: Tag = (if (Build.VERSION.SDK_INT >= 33) intent?.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
-        else @Suppress("DEPRECATION") intent?.getParcelableExtra(NfcAdapter.EXTRA_TAG)) ?: return
+        if (intent?.action !in NFC_ACTIONS) return
+        // 只接受系統 NFC 送來的標籤；別的 App 塞壞資料進來也不會讓 App 當掉
+        val tag: Tag = try {
+            if (Build.VERSION.SDK_INT >= 33) intent?.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
+            else @Suppress("DEPRECATION") intent?.getParcelableExtra(NfcAdapter.EXTRA_TAG)
+        } catch (_: Exception) { null } ?: return
         Thread { vm.onTag(tag) }.start()
     }
 
