@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NFC 讀寫工具</title>
+<meta name="description" content="在 Android Chrome 上讀取、寫入、清除、鎖定 NFC 標籤（NTAG213/215/216 等）。">
+<meta name="theme-color" content="#0f766e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Cpath d='M22 44V20l20 24V20' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">N</span>
+    <div>
+      <h1>NFC 讀寫工具</h1>
+      <p class="sub">讀取・寫入・清除・鎖定・複製</p>
+    </div>
+  </div>
+  <span id="support-pill" class="pill">檢查中…</span>
+</header>
+
+<div id="support-banner" class="banner" hidden></div>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="read" aria-selected="true">讀取</button>
+  <button role="tab" data-tab="write" aria-selected="false">寫入</button>
+  <button role="tab" data-tab="tools" aria-selected="false">工具</button>
+  <button role="tab" data-tab="history" aria-selected="false">紀錄</button>
+</nav>
+
+<main>
+  <!-- 讀取 -->
+  <section id="tab-read" class="panel" role="tabpanel">
+    <div class="card center">
+      <button id="btn-scan" class="btn primary big">開始讀取</button>
+      <p class="hint">按下後把標籤貼近手機背面（通常在相機下方或中間）。讀取中可以連續讀多張。</p>
+    </div>
+    <div id="read-results"></div>
+  </section>
+
+  <!-- 寫入 -->
+  <section id="tab-write" class="panel" role="tabpanel" hidden>
+    <div class="card">
+      <div class="row between">
+        <h2>要寫入的內容</h2>
+        <select id="template-select" aria-label="載入常用內容">
+          <option value="">載入常用內容…</option>
+        </select>
+      </div>
+      <div id="records"></div>
+      <button id="btn-add-record" class="btn ghost full">＋ 再加一筆記錄</button>
+      <p class="hint">一張標籤可以放多筆記錄，但手機靠近時通常只會自動開啟<b>第一筆</b>。</p>
+    </div>
+
+    <div class="card">
+      <div class="row between">
+        <h2>容量</h2>
+        <select id="chip-select" aria-label="標籤晶片">
+          <option value="144">NTAG213（144 B）</option>
+          <option value="504" selected>NTAG215（504 B）</option>
+          <option value="888">NTAG216（888 B）</option>
+          <option value="48">MIFARE Ultralight（48 B）</option>
+          <option value="716">MIFARE Classic 1K（約 716 B）</option>
+        </select>
+      </div>
+      <div class="meter"><div id="size-bar"></div></div>
+      <p id="size-text" class="hint"></p>
+    </div>
+
+    <div class="card">
+      <h2>寫入選項</h2>
+      <label class="check"><input type="checkbox" id="opt-protect"> 標籤已有資料時不要覆寫</label>
+      <label class="check"><input type="checkbox" id="opt-batch"> 連續寫入多張（大量製作用）</label>
+      <label class="check danger-text"><input type="checkbox" id="opt-lock"> 寫入後永久鎖定（無法再修改）</label>
+      <div class="row gap">
+        <button id="btn-write" class="btn primary big grow">寫入標籤</button>
+        <button id="btn-save-template" class="btn ghost">存成常用</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 工具 -->
+  <section id="tab-tools" class="panel" role="tabpanel" hidden>
+    <div class="card">
+      <h2>複製標籤</h2>
+      <p class="hint">先讀取來源標籤，再把一模一樣的內容寫到另一張。</p>
+      <button id="btn-clone" class="btn primary full">開始複製</button>
+    </div>
+    <div class="card">
+      <h2>清除標籤</h2>
+      <p class="hint">寫入一筆空記錄，標籤變成空白但仍可再寫入。已鎖定的標籤無法清除。</p>
+      <button id="btn-erase" class="btn full">清除標籤</button>
+    </div>
+    <div class="card danger">
+      <h2>永久鎖定</h2>
+      <p class="hint">鎖定後標籤內容<b>永遠無法修改或清除</b>，適合發放出去的成品，避免被別人改寫。NTAG 系列鎖定無法復原。</p>
+      <button id="btn-lock" class="btn danger full">鎖定標籤</button>
+    </div>
+    <div class="card">
+      <h2>說明與限制</h2>
+      <ul class="notes">
+        <li>網頁 NFC（Web NFC）目前<b>只支援 Android 的 Chrome</b>（以及 Samsung 網際網路等 Chromium 瀏覽器）。iPhone 的 Safari、Chrome 都不支援，也沒有辦法用網頁開啟。</li>
+        <li>手機需要開啟 NFC：設定 → 連線 → NFC。</li>
+        <li>網頁只能讀寫 NDEF 格式內容（網址、文字、名片等），無法讀取悠遊卡、門禁卡、信用卡等加密卡片，也不能複製門禁卡（CUID 卡）。</li>
+        <li>iPhone 雖然不能用這個網站寫入，但可以<b>讀取</b>寫好的標籤：iPhone XS 以後靠近就會跳出網址通知。iPhone 想寫入可用 App，例如 NFC Tools。</li>
+        <li>常用的白色貼紙（NTAG215）可放約 500 bytes，一個 IG 網址只佔約 40 bytes。</li>
+        <li>所有資料只存在你的手機瀏覽器，不會上傳。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 紀錄 -->
+  <section id="tab-history" class="panel" role="tabpanel" hidden>
+    <div class="card">
+      <div class="row between">
+        <h2>操作紀錄</h2>
+        <div class="row gap">
+          <button id="btn-export" class="btn ghost small">匯出</button>
+          <button id="btn-clear-history" class="btn ghost small">清空</button>
+        </div>
+      </div>
+      <div id="history-list"></div>
+    </div>
+    <div class="card">
+      <h2>常用內容</h2>
+      <div id="template-list"></div>
+    </div>
+  </section>
+</main>
+
+<!-- 等待標籤 -->
+<div id="overlay" class="overlay" hidden>
+  <div class="sheet">
+    <div class="pulse" aria-hidden="true"><span></span></div>
+    <h2 id="overlay-title">請把標籤靠近手機</h2>
+    <p id="overlay-text" class="hint"></p>
+    <p id="overlay-count" class="count" hidden></p>
+    <button id="btn-cancel" class="btn full">取消</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<template id="tpl-record">
+  <div class="record">
+    <div class="row gap">
+      <span class="rec-no"></span>
+      <select class="rec-type grow" aria-label="記錄類型"></select>
+      <button class="btn ghost small rec-up" title="上移" aria-label="上移">↑</button>
+      <button class="btn ghost small rec-del" title="刪除" aria-label="刪除">✕</button>
+    </div>
+    <div class="rec-fields"></div>
+    <p class="rec-size hint"></p>
+  </div>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
