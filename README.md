@@ -4,7 +4,9 @@
 
 在手機瀏覽器上讀取、寫入、清除、鎖定、複製 NFC 標籤（NTAG213/215/216、MIFARE Ultralight 等 NDEF 標籤）。
 
-**只支援 Android 的 Chrome**（Web NFC）。iPhone 的瀏覽器都不支援網頁 NFC，但 iPhone 可以直接讀取寫好的網址標籤。
+**只支援 Android 的 Chrome**（Web NFC）。
+
+**Android App 版**（功能更多：密碼保護、原廠驗證、原始資料、自動感應）：[下載 nfc-tool.apk](https://github.com/s010129/nfc-tool/releases/latest/download/nfc-tool.apk)，說明見 [android/](android/)。iPhone 的瀏覽器都不支援網頁 NFC，但 iPhone 可以直接讀取寫好的網址標籤。
 
 ## 功能
 - 讀取：序號（UID）、每筆記錄的內容與原始資料，可連續讀多張
